@@ -10,7 +10,7 @@ import { Input } from '@/components/ui/input';
 import { Label } from '@/components/ui/label';
 import { PasswordInput } from '@/components/ui/password-input';
 import { Checkbox } from '@/components/ui/checkbox';
-import { useLogin } from '@/hooks/use-auth';
+import { useLogin, useSocialLogin } from '@/hooks/use-auth';
 
 const schema = z.object({
   email: z.string().email('Enter a valid email'),
@@ -21,6 +21,7 @@ type FormValues = z.infer<typeof schema>;
 
 export default function LoginPage() {
   const login = useLogin();
+  const social = useSocialLogin();
   const {
     register,
     handleSubmit,
@@ -33,6 +34,7 @@ export default function LoginPage() {
   });
 
   const onSubmit = (values: FormValues) => login.mutate(values);
+  const rememberMe = watch('rememberMe');
 
   return (
     <div className="space-y-6">
@@ -106,7 +108,8 @@ export default function LoginPage() {
           {/* Google */}
           <button
             type="button"
-            onClick={() => import('sonner').then(({ toast }) => toast.info('Google sign-in coming soon.'))}
+            onClick={() => social.mutate({ provider: 'google', rememberMe })}
+            disabled={login.isPending || social.isPending}
             className="flex h-11 items-center justify-center gap-2 rounded-lg border bg-white px-4 shadow-sm transition-all hover:bg-gray-50 hover:shadow"
           >
             <svg className="h-5 w-5" viewBox="0 0 24 24">
@@ -121,7 +124,8 @@ export default function LoginPage() {
           {/* Facebook */}
           <button
             type="button"
-            onClick={() => import('sonner').then(({ toast }) => toast.info('Facebook sign-in coming soon.'))}
+            onClick={() => social.mutate({ provider: 'facebook', rememberMe })}
+            disabled={login.isPending || social.isPending}
             className="flex h-11 items-center justify-center gap-2 rounded-lg border bg-[#1877F2] px-4 shadow-sm transition-all hover:bg-[#166FE5] hover:shadow"
           >
             <svg className="h-5 w-5 text-white" fill="currentColor" viewBox="0 0 24 24">

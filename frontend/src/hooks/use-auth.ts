@@ -5,6 +5,8 @@ import { toast } from '@/lib/toast';
 import { api, apiError } from '@/lib/api';
 import { useAuthStore } from '@/lib/auth-store';
 import { useMutation } from '@/lib/simple-query';
+import { signInWithPopup, signOut } from 'firebase/auth';
+import { facebookProvider, firebaseAuth, googleProvider } from '@/lib/firebase';
 
 export function useLogin() {
   const router = useRouter();
@@ -26,6 +28,34 @@ export function useLogin() {
     onError: (err) => toast.error(apiError(err, 'Login failed'), {
       description: 'Please check your credentials and try again.',
     }),
+  });
+}
+
+export function useSocialLogin() {
+  const router = useRouter();
+  const setAuth = useAuthStore((s) => s.setAuth);
+
+  return useMutation({
+    mutationFn: async (vars: { provider: 'google' | 'facebook'; rememberMe?: boolean }) => {
+      const providerObj = vars.provider === 'google' ? googleProvider : facebookProvider;
+      const cred = await signInWithPopup(firebaseAuth, providerObj);
+      const idToken = await cred.user.getIdToken();
+      const res = await api.post('/auth/firebase', { idToken, rememberMe: vars.rememberMe });
+      return res.data.data as { accessToken: string; user: any };
+    },
+    onSuccess: async (data) => {
+      useAuthStore.getState().setAccessToken(data.accessToken);
+      const me = await api.get('/auth/me');
+      setAuth({ user: me.data.data.user, accessToken: data.accessToken, permissions: me.data.data.permissions });
+      toast.success(`Welcome back, ${me.data.data.user.name.split(' ')[0]}!`, {
+        description: 'You have been successfully logged in.',
+      });
+      router.push('/dashboard');
+    },
+    onError: (err) =>
+      toast.error(apiError(err, 'Social login failed'), {
+        description: 'Please try again.',
+      }),
   });
 }
 
@@ -53,6 +83,7 @@ export function useLogout() {
   return useMutation({
     mutationFn: async () => {
       await api.post('/auth/logout');
+      await signOut(firebaseAuth).catch(() => undefined);
     },
     onSuccess: () => {
       useAuthStore.getState().clear();

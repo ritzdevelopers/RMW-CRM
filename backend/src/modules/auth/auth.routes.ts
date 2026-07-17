@@ -7,6 +7,7 @@ import { authLimiter } from '../../middleware/rateLimit.js';
 import {
   registerSchema,
   loginSchema,
+  firebaseLoginSchema,
   forgotPasswordSchema,
   resetPasswordSchema,
   changePasswordSchema,
@@ -17,6 +18,7 @@ const router = Router();
 
 router.post('/register', authLimiter, validate({ body: registerSchema }), asyncHandler(ctrl.register));
 router.post('/login', authLimiter, validate({ body: loginSchema }), asyncHandler(ctrl.login));
+router.post('/firebase', authLimiter, validate({ body: firebaseLoginSchema }), asyncHandler(ctrl.firebaseLogin));
 router.post('/refresh', asyncHandler(ctrl.refresh));
 router.post('/logout', asyncHandler(ctrl.logout));
 

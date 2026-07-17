@@ -21,6 +21,11 @@ export const loginSchema = z.object({
   rememberMe: z.boolean().optional().default(false),
 });
 
+export const firebaseLoginSchema = z.object({
+  idToken: z.string().min(10),
+  rememberMe: z.boolean().optional().default(false),
+});
+
 export const forgotPasswordSchema = z.object({
   email: z.string().email().toLowerCase(),
 });
@@ -41,3 +46,4 @@ export const verifyEmailSchema = z.object({
 
 export type RegisterInput = z.infer<typeof registerSchema>;
 export type LoginInput = z.infer<typeof loginSchema>;
+export type FirebaseLoginInput = z.infer<typeof firebaseLoginSchema>;

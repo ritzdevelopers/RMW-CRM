@@ -5,6 +5,8 @@ import { signAccessToken, refreshTokenTtlMs } from '../../utils/jwt.js';
 import { randomToken, hashToken } from '../../utils/tokens.js';
 import { sendMail, verificationEmail, resetPasswordEmail } from '../../utils/mailer.js';
 import { env } from '../../config/env.js';
+import { verifyFirebaseIdToken } from '../../utils/firebaseAdmin.js';
+import { logger } from '../../utils/logger.js';
 import type { RegisterInput } from './auth.schema.js';
 
 interface UserRow {
@@ -101,6 +103,85 @@ export async function login(
   if (!valid) throw ApiError.unauthorized('Invalid email or password');
 
   await pool.execute(`UPDATE users SET last_login_at = NOW() WHERE id = ?`, [user.id]);
+
+  const tokens = await issueTokens(
+    { id: user.id, email: user.email, role: user.role },
+    ctx,
+  );
+  const safeUser = await getUserById(user.id);
+  return { ...tokens, user: safeUser };
+}
+
+function firebaseProviderName(decoded: any): string | null {
+  const p = decoded?.firebase?.sign_in_provider;
+  return typeof p === 'string' ? p : null;
+}
+
+export async function firebaseLogin(
+  idToken: string,
+  ctx: { userAgent?: string; ip?: string; rememberMe?: boolean },
+) {
+  let decoded: any;
+  try {
+    decoded = await verifyFirebaseIdToken(idToken);
+  } catch {
+    logger.warn('Firebase ID token verification failed', {
+      projectId: env.firebase.projectId || '(missing)',
+      clientEmail: env.firebase.clientEmail ? 'set' : '(missing)',
+      privateKey: env.firebase.privateKey ? 'set' : '(missing)',
+    });
+    throw ApiError.unauthorized('Invalid or expired Firebase token');
+  }
+
+  logger.debug('Firebase ID token verified', {
+    aud: decoded?.aud,
+    iss: decoded?.iss,
+    provider: decoded?.firebase?.sign_in_provider,
+    uid: decoded?.uid,
+    email: decoded?.email,
+  });
+
+  const provider = firebaseProviderName(decoded);
+  if (provider !== 'google.com' && provider !== 'facebook.com') {
+    throw ApiError.badRequest('Unsupported social provider');
+  }
+
+  const email = typeof decoded?.email === 'string' ? decoded.email.toLowerCase() : null;
+  if (!email) throw ApiError.badRequest('Firebase token missing email');
+
+  const displayName =
+    (typeof decoded?.name === 'string' && decoded.name.trim()) ||
+    (typeof decoded?.displayName === 'string' && decoded.displayName.trim()) ||
+    email.split('@')[0];
+  const avatarUrl = typeof decoded?.picture === 'string' ? decoded.picture : null;
+
+  let user = await getUserByEmail(email);
+
+  if (!user) {
+    const role = await queryOne<{ id: number }>(
+      `SELECT id FROM roles WHERE name = 'sales_executive' LIMIT 1`,
+    );
+    if (!role) throw ApiError.internal('Default role not configured. Run db:seed.');
+
+    const result: any = await pool.execute(
+      `INSERT INTO users (name, email, phone, password_hash, avatar_url, role_id, status, email_verified_at, last_login_at)
+       VALUES (?, ?, NULL, NULL, ?, ?, 'active', NOW(), NOW())`,
+      [displayName, email, avatarUrl, role.id],
+    );
+    const userId = result[0].insertId as number;
+    const safeUser = await getUserById(userId);
+    user = await getUserByEmail(email);
+    if (!safeUser || !user) throw ApiError.internal('Failed to create user');
+  } else {
+    if (user.status === 'suspended') throw ApiError.forbidden('Account suspended');
+    await pool.execute(`UPDATE users SET last_login_at = NOW() WHERE id = ?`, [user.id]);
+    if (avatarUrl && !user.avatar_url) {
+      await pool.execute(`UPDATE users SET avatar_url = ? WHERE id = ?`, [avatarUrl, user.id]);
+    }
+    if (!user.email_verified_at) {
+      await pool.execute(`UPDATE users SET email_verified_at = NOW() WHERE id = ?`, [user.id]);
+    }
+  }
 
   const tokens = await issueTokens(
     { id: user.id, email: user.email, role: user.role },

@@ -52,6 +52,12 @@ export const env = {
 
   appUrl: process.env.APP_URL ?? 'http://localhost:3000',
 
+  firebase: {
+    projectId: process.env.FIREBASE_PROJECT_ID ?? '',
+    clientEmail: process.env.FIREBASE_CLIENT_EMAIL ?? '',
+    privateKey: (process.env.FIREBASE_PRIVATE_KEY ?? '').replace(/\\n/g, '\n'),
+  },
+
   seed: {
     email: process.env.SEED_ADMIN_EMAIL ?? 'admin@mypropertyfact.com',
     password: process.env.SEED_ADMIN_PASSWORD ?? 'Admin@12345',

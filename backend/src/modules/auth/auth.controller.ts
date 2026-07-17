@@ -44,6 +44,18 @@ export async function login(req: Request, res: Response) {
   return ok(res, { accessToken: result.accessToken, user: result.user });
 }
 
+export async function firebaseLogin(req: Request, res: Response) {
+  const { idToken, rememberMe } = req.body;
+  const result = await service.firebaseLogin(idToken, {
+    userAgent: req.headers['user-agent'],
+    ip: clientIp(req),
+    rememberMe,
+  });
+  setRefreshCookie(res, result.refreshToken, result.refreshExpiresAt);
+  audit({ actorId: (result.user as any)?.id, action: 'auth.firebase_login', entityType: 'user', entityId: (result.user as any)?.id, ip: clientIp(req) });
+  return ok(res, { accessToken: result.accessToken, user: result.user });
+}
+
 export async function refresh(req: Request, res: Response) {
   const token = req.cookies?.[env.cookie.refreshName];
   if (!token) throw ApiError.unauthorized('No session');
