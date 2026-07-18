@@ -31,6 +31,11 @@ export const env = {
     ssl: process.env.DB_SSL === 'true',
     /** Path to CA cert (e.g. ca.pem). Defaults to backend/ca.pem when SSL is on. */
     sslCa: process.env.DB_SSL_CA ?? '',
+    /**
+     * PEM contents of the CA cert (preferred on Render / CI).
+     * Supports literal `\n` escapes from env UIs.
+     */
+    sslCaCert: (process.env.DB_CA_CERT ?? '').replace(/\\n/g, '\n'),
   },
 
   jwt: {
