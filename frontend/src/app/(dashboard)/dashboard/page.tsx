@@ -89,7 +89,7 @@ export default function DashboardPage() {
       </PageHeader>
 
       {/* Zoho-like onboarding block */}
-      <Card className="overflow-hidden bg-gradient-to-br from-blue-50/50 via-white to-purple-50/30">
+      <Card className="overflow-hidden border-border/60 bg-gradient-to-br from-blue-50/50 via-white to-purple-50/30 dark:from-primary/10 dark:via-card dark:to-purple-950/20">
         <div className="grid grid-cols-1 gap-0 lg:grid-cols-12">
           {/* Left: Hello section with video */}
           <div className="relative p-6 lg:col-span-4">
@@ -102,11 +102,11 @@ export default function DashboardPage() {
             </p>
             <p className="mt-4 text-sm font-medium">Let&apos;s get started!</p>
             
-            <div className="mt-4 rounded-lg border bg-white/80 p-3">
+            <div className="mt-4 rounded-lg border border-border/60 bg-white/80 p-3 dark:bg-muted/30">
               <p className="text-sm font-medium">Watch a one‑minute video</p>
               <p className="text-xs text-muted-foreground">View the key features we offer</p>
-              <div className="mt-3 flex items-center justify-center rounded-lg bg-gradient-to-br from-blue-100 to-purple-100 py-10">
-                <div className="flex h-12 w-12 items-center justify-center rounded-full bg-primary text-white shadow-lg">
+              <div className="mt-3 flex items-center justify-center rounded-lg bg-gradient-to-br from-blue-100 to-purple-100 py-10 dark:from-primary/15 dark:to-purple-950/25">
+                <div className="flex h-12 w-12 items-center justify-center rounded-full bg-primary text-primary-foreground shadow-lg">
                   <svg className="h-5 w-5 ml-0.5" fill="currentColor" viewBox="0 0 24 24">
                     <path d="M8 5v14l11-7z" />
                   </svg>
@@ -116,7 +116,7 @@ export default function DashboardPage() {
           </div>
 
           {/* Middle: Setup items */}
-          <div className="border-t p-6 lg:col-span-4 lg:border-l lg:border-t-0">
+          <div className="border-t border-border/60 p-6 lg:col-span-4 lg:border-l lg:border-t-0">
             <div className="mb-4">
               <p className="font-semibold">Set up your CRM</p>
               <p className="mt-1 text-xs text-muted-foreground">Make your CRM smarter and more interactive</p>
@@ -131,19 +131,11 @@ export default function DashboardPage() {
           </div>
 
           {/* Right: Illustration & CTA */}
-          <div className="flex flex-col items-center justify-center border-t bg-gradient-to-br from-blue-50 to-indigo-100/50 p-6 lg:col-span-4 lg:border-l lg:border-t-0">
+          <div className="flex flex-col items-center justify-center border-t border-border/60 bg-gradient-to-br from-blue-50 to-indigo-100/50 p-6 dark:from-primary/10 dark:to-indigo-950/30 lg:col-span-4 lg:border-l lg:border-t-0">
             <div className="mb-4 flex h-32 w-32 items-center justify-center">
-              <svg viewBox="0 0 200 200" className="h-full w-full">
-                <circle cx="100" cy="100" r="80" fill="#e0e7ff" />
-                <circle cx="100" cy="70" r="25" fill="#6366f1" />
-                <ellipse cx="100" cy="130" rx="40" ry="25" fill="#6366f1" />
-                <circle cx="55" cy="90" r="15" fill="#a5b4fc" />
-                <circle cx="145" cy="90" r="15" fill="#a5b4fc" />
-                <circle cx="40" cy="120" r="10" fill="#c7d2fe" />
-                <circle cx="160" cy="120" r="10" fill="#c7d2fe" />
-              </svg>
+              <TeamIllustration />
             </div>
-            <p className="text-center font-semibold text-slate-800">Invite your team</p>
+            <p className="text-center font-semibold text-foreground">Invite your team</p>
             <p className="mt-2 max-w-[200px] text-center text-xs text-muted-foreground">
               Stay connected and collaborate with your team members to share sales updates from one platform.
             </p>
@@ -343,6 +335,20 @@ function ChartTooltip({ active, payload, label }: any) {
   );
 }
 
+function TeamIllustration() {
+  return (
+    <svg viewBox="0 0 200 200" className="h-full w-full">
+      <circle cx="100" cy="100" r="80" className="fill-indigo-100 dark:fill-indigo-950/60" />
+      <circle cx="100" cy="70" r="25" className="fill-indigo-500 dark:fill-indigo-400" />
+      <ellipse cx="100" cy="130" rx="40" ry="25" className="fill-indigo-500 dark:fill-indigo-400" />
+      <circle cx="55" cy="90" r="15" className="fill-indigo-300 dark:fill-indigo-500/70" />
+      <circle cx="145" cy="90" r="15" className="fill-indigo-300 dark:fill-indigo-500/70" />
+      <circle cx="40" cy="120" r="10" className="fill-indigo-200 dark:fill-indigo-600/50" />
+      <circle cx="160" cy="120" r="10" className="fill-indigo-200 dark:fill-indigo-600/50" />
+    </svg>
+  );
+}
+
 function SetupItem({
   icon: Icon,
   title,
@@ -357,7 +363,7 @@ function SetupItem({
   return (
     <Link
       href={href}
-      className="flex items-center gap-3 rounded-lg border bg-background px-3 py-2.5 text-sm transition-all hover:border-transparent hover:shadow-md"
+      className="flex items-center gap-3 rounded-lg border border-border/60 bg-card/80 px-3 py-2.5 text-sm transition-all hover:border-primary/30 hover:bg-accent/50 hover:shadow-md dark:bg-muted/20 dark:hover:shadow-none"
       style={{ ['--item-color' as string]: color }}
     >
       <span 
