@@ -37,3 +37,7 @@ coverage/
 *.tsbuildinfo
 .turbo/
 .vercel/
+
+
+# Backend
+backend/ca.pem

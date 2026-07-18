@@ -27,6 +27,10 @@ export const env = {
     password: process.env.DB_PASSWORD ?? '',
     database: required('DB_NAME', 'mpf_crm'),
     connectionLimit: Number(process.env.DB_CONNECTION_LIMIT ?? 10),
+    /** Required for Aiven and most managed MySQL providers. */
+    ssl: process.env.DB_SSL === 'true',
+    /** Path to CA cert (e.g. ca.pem). Defaults to backend/ca.pem when SSL is on. */
+    sslCa: process.env.DB_SSL_CA ?? '',
   },
 
   jwt: {

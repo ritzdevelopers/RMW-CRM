@@ -1,5 +1,6 @@
 import mysql from 'mysql2/promise';
 import { env } from '../config/env.js';
+import { getDbSslOptions } from './ssl.js';
 
 export const pool = mysql.createPool({
   host: env.db.host,
@@ -13,6 +14,7 @@ export const pool = mysql.createPool({
   namedPlaceholders: true,
   dateStrings: false,
   enableKeepAlive: true,
+  ssl: getDbSslOptions(),
 });
 
 /** Typed query helper returning rows. */
