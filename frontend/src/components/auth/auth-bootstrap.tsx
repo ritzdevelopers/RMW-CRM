@@ -5,7 +5,7 @@ import axios from 'axios';
 import { useAuthStore } from '@/lib/auth-store';
 import { api } from '@/lib/api';
 
-const API_URL = process.env.NEXT_PUBLIC_API_URL ?? 'http://localhost:5000/api/v1';
+const API_URL = process.env.NEXT_PUBLIC_API_URL ?? 'https://rmw-crm-1.onrender.com/api/v1';
 
 /**
  * On first load, silently refreshes the session (httpOnly cookie) and

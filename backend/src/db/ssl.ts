@@ -6,12 +6,14 @@ import { env } from '../config/env.js';
 
 const __dirname = dirname(fileURLToPath(import.meta.url));
 
-function resolveCa(): string | Buffer {
-  // Prefer inline PEM (Render / hosted envs — ca.pem is gitignored).
-  if (env.db.sslCaCert.trim()) {
-    return env.db.sslCaCert;
-  }
+function isCompletePem(value: string): boolean {
+  return (
+    value.includes('-----BEGIN CERTIFICATE-----') &&
+    value.includes('-----END CERTIFICATE-----')
+  );
+}
 
+function resolveCaFromFile(): Buffer {
   const caPath = env.db.sslCa
     ? isAbsolute(env.db.sslCa)
       ? env.db.sslCa
@@ -20,11 +22,21 @@ function resolveCa(): string | Buffer {
 
   if (!existsSync(caPath)) {
     throw new Error(
-      `DB_SSL is enabled but no CA cert found. Set DB_CA_CERT (PEM contents) or place ca.pem at ${caPath}`,
+      `DB_SSL is enabled but no CA cert found. Set DB_CA_CERT (full PEM) or place ca.pem at ${caPath}`,
     );
   }
 
   return readFileSync(caPath);
+}
+
+function resolveCa(): string | Buffer {
+  const inline = env.db.sslCaCert.trim();
+  // dotenv truncates unquoted multiline values — only use a complete PEM.
+  if (inline && isCompletePem(inline)) {
+    return inline;
+  }
+
+  return resolveCaFromFile();
 }
 
 /** Aiven (and most managed MySQL) require TLS. Returns undefined when DB_SSL is off. */
