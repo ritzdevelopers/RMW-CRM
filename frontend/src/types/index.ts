@@ -15,7 +15,8 @@ export type LeadSource =
   | 'walk_in'
   | 'manual'
   | 'import'
-  | 'other';
+  | 'other'
+  | 'my_property_fact';
 
 export type Priority = 'low' | 'medium' | 'high';
 
@@ -41,6 +42,8 @@ export interface Lead {
   phone: string;
   alt_phone?: string | null;
   source: LeadSource;
+  external_source?: string | null;
+  external_id?: string | null;
   campaign?: string | null;
   status: LeadStatus;
   score: number;

@@ -1,7 +1,6 @@
 'use client';
 
 import * as React from 'react';
-import Link from 'next/link';
 import { useSearchParams, useRouter } from 'next/navigation';
 import {
   Plus,
@@ -16,20 +15,13 @@ import {
   Download,
   Filter,
   SlidersHorizontal,
-  MoreHorizontal,
   ChevronDown,
 } from 'lucide-react';
-import { PageHeader } from '@/components/shared/page-header';
 import { EmptyState } from '@/components/shared/empty-state';
-import { PaginationBar } from '@/components/shared/pagination-bar';
 import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
 import { Card } from '@/components/ui/card';
-import { Checkbox } from '@/components/ui/checkbox';
 import { Skeleton } from '@/components/ui/skeleton';
-import { Avatar, AvatarFallback } from '@/components/ui/avatar';
-import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from '@/components/ui/table';
-import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/select';
 import {
   DropdownMenu,
   DropdownMenuContent,
@@ -38,12 +30,13 @@ import {
 } from '@/components/ui/dropdown-menu';
 import { LeadFormDialog } from '@/components/leads/lead-form-dialog';
 import { LeadsKanban } from '@/components/leads/leads-kanban';
-import { StatusBadge } from '@/components/leads/lead-badges';
+import { LeadsGridBox } from '@/components/leads/leads-grid-box';
+import { LeadSourceBoxes, ALL_SOURCES } from '@/components/leads/lead-source-boxes';
 import { useLeads, useBulkLeads, type LeadFilters } from '@/hooks/use-leads';
+import { useDashboardOverview } from '@/hooks/use-dashboard';
 import { useAssignableUsers } from '@/hooks/use-users';
 import { useAuthStore } from '@/lib/auth-store';
 import { LEAD_SOURCE_META, LEAD_STATUS_META, LEAD_STATUS_ORDER } from '@/lib/constants';
-import { formatCurrency, getInitials } from '@/lib/utils';
 
 function useDebounced<T>(value: T, delay = 300): T {
   const [v, setV] = React.useState(value);
@@ -61,7 +54,7 @@ export default function LeadsPage() {
   const router = useRouter();
   const can = useAuthStore((s) => s.can);
 
-  const [view, setView] = React.useState<'table' | 'kanban'>('table');
+  const [view, setView] = React.useState<'grid' | 'kanban'>('grid');
   const [search, setSearch] = React.useState('');
   const debouncedSearch = useDebounced(search);
   const [status, setStatus] = React.useState<string>(ALL);
@@ -70,6 +63,7 @@ export default function LeadsPage() {
   const [sortBy, setSortBy] = React.useState('created_at');
   const [order, setOrder] = React.useState<'asc' | 'desc'>('desc');
   const [page, setPage] = React.useState(1);
+  const [mpfOpen, setMpfOpen] = React.useState(false);
   const [selected, setSelected] = React.useState<number[]>([]);
   const [formOpen, setFormOpen] = React.useState(false);
 
@@ -84,7 +78,7 @@ export default function LeadsPage() {
 
   const filters: LeadFilters = {
     page: view === 'kanban' ? 1 : page,
-    pageSize: view === 'kanban' ? 100 : 15,
+    pageSize: view === 'kanban' ? 100 : 12,
     search: debouncedSearch || undefined,
     status: status !== ALL ? status : undefined,
     source: source !== ALL ? source : undefined,
@@ -94,6 +88,7 @@ export default function LeadsPage() {
   };
 
   const { data, isLoading, isFetching } = useLeads(filters);
+  const { data: overview } = useDashboardOverview();
   const bulk = useBulkLeads();
   const { data: users } = useAssignableUsers();
 
@@ -101,16 +96,29 @@ export default function LeadsPage() {
   const pagination = data?.pagination;
   const activeFilters = [status, source, priority].filter((f) => f !== ALL).length;
 
-  const toggleSort = (col: string) => {
-    if (sortBy === col) setOrder((o) => (o === 'asc' ? 'desc' : 'asc'));
-    else {
-      setSortBy(col);
-      setOrder('desc');
+  const sourceCounts = React.useMemo(() => {
+    const counts: Record<string, number> = {};
+    for (const row of overview?.sources ?? []) {
+      counts[row.source] = Number(row.count);
+    }
+    return counts;
+  }, [overview?.sources]);
+
+  const activeSourceBox = source !== ALL ? source : ALL_SOURCES;
+  const handleSourceBoxChange = (next: string) => {
+    setMpfOpen(false);
+    setSource(next === ALL_SOURCES ? ALL : next);
+    setPage(1);
+  };
+
+  const handleMpfToggle = () => {
+    setMpfOpen((v) => !v);
+    if (!mpfOpen) {
+      setSource(ALL);
+      setPage(1);
     }
   };
 
-  const allSelected = leads.length > 0 && selected.length === leads.length;
-  const toggleAll = () => setSelected(allSelected ? [] : leads.map((l) => l.id));
   const toggleOne = (id: number) =>
     setSelected((s) => (s.includes(id) ? s.filter((x) => x !== id) : [...s, id]));
 
@@ -155,11 +163,11 @@ export default function LeadsPage() {
           <SlidersHorizontal className="h-4 w-4" /> Sort
         </Button>
         <div className="ml-auto flex items-center rounded-lg border p-0.5">
-          <Button variant={view === 'table' ? 'secondary' : 'ghost'} size="sm" className="h-7 px-2" onClick={() => setView('table')}>
-            <List className="h-4 w-4" />
+          <Button variant={view === 'grid' ? 'secondary' : 'ghost'} size="sm" className="h-7 px-2" onClick={() => setView('grid')}>
+            <LayoutGrid className="h-4 w-4" />
           </Button>
           <Button variant={view === 'kanban' ? 'secondary' : 'ghost'} size="sm" className="h-7 px-2" onClick={() => setView('kanban')}>
-            <LayoutGrid className="h-4 w-4" />
+            <List className="h-4 w-4" />
           </Button>
         </div>
       </div>
@@ -250,7 +258,28 @@ export default function LeadsPage() {
         </div>
 
         {/* Table/Content area */}
-        <div className="min-w-0 flex-1">
+        <div className="min-w-0 flex-1 space-y-4">
+          <LeadSourceBoxes
+            counts={sourceCounts}
+            total={overview?.stats?.totalLeads ?? pagination?.total ?? 0}
+            activeSource={activeSourceBox}
+            mpfOpen={mpfOpen}
+            onSourceChange={handleSourceBoxChange}
+            onMpfToggle={handleMpfToggle}
+            canSync={can('leads.import')}
+          />
+
+          {!mpfOpen && (
+            <>
+          <div className="flex items-center justify-between pt-2">
+            <h2 className="text-base font-semibold">
+              {source !== ALL ? LEAD_SOURCE_META[source as keyof typeof LEAD_SOURCE_META]?.label ?? 'Leads' : 'All Leads'}
+            </h2>
+            <span className="text-sm text-muted-foreground">
+              {pagination?.total ?? 0} total
+            </span>
+          </div>
+
           {/* Bulk action bar */}
           {selected.length > 0 && (
             <Card className="mb-3 flex flex-wrap items-center gap-2 border-primary/30 bg-primary/[0.04] p-2">
@@ -309,7 +338,7 @@ export default function LeadsPage() {
           {view === 'kanban' ? (
             <LeadsKanban leads={leads} loading={isLoading} />
           ) : isLoading ? (
-            <TableSkeleton />
+            <GridSkeleton />
           ) : leads.length === 0 ? (
             <EmptyState
               icon={Users}
@@ -324,69 +353,21 @@ export default function LeadsPage() {
               }
             />
           ) : (
-            <Card className={isFetching ? 'opacity-70 transition-opacity' : 'transition-opacity'}>
-              <Table>
-                <TableHeader>
-                  <TableRow className="bg-muted/30">
-                    <TableHead className="w-10">
-                      <Checkbox checked={allSelected} onCheckedChange={toggleAll} aria-label="Select all" />
-                    </TableHead>
-                    <SortHead label="Lead Name" col="name" sortBy={sortBy} order={order} onSort={toggleSort} />
-                    <TableHead>Company</TableHead>
-                    <TableHead>Email</TableHead>
-                    <TableHead>Phone</TableHead>
-                    <TableHead>Status</TableHead>
-                    <TableHead className="w-10" />
-                  </TableRow>
-                </TableHeader>
-                <TableBody>
-                  {leads.map((lead) => (
-                    <TableRow key={lead.id} className="hover:bg-muted/30" data-state={selected.includes(lead.id) ? 'selected' : undefined}>
-                      <TableCell>
-                        <Checkbox checked={selected.includes(lead.id)} onCheckedChange={() => toggleOne(lead.id)} />
-                      </TableCell>
-                      <TableCell>
-                        <Link href={`/leads/${lead.id}`} className="font-medium text-primary hover:underline">
-                          {lead.name}
-                        </Link>
-                      </TableCell>
-                      <TableCell className="text-sm text-muted-foreground">
-                        {lead.builder_name || '—'}
-                      </TableCell>
-                      <TableCell className="text-sm text-muted-foreground">
-                        {lead.email || '—'}
-                      </TableCell>
-                      <TableCell className="text-sm">
-                        {lead.phone || '—'}
-                      </TableCell>
-                      <TableCell><StatusBadge status={lead.status} /></TableCell>
-                      <TableCell>
-                        <DropdownMenu>
-                          <DropdownMenuTrigger asChild>
-                            <Button variant="ghost" size="icon" className="h-8 w-8">
-                              <MoreHorizontal className="h-4 w-4" />
-                            </Button>
-                          </DropdownMenuTrigger>
-                          <DropdownMenuContent align="end">
-                            <DropdownMenuItem asChild>
-                              <Link href={`/leads/${lead.id}`}>View details</Link>
-                            </DropdownMenuItem>
-                          </DropdownMenuContent>
-                        </DropdownMenu>
-                      </TableCell>
-                    </TableRow>
-                  ))}
-                </TableBody>
-              </Table>
-              {pagination && (
-                <div className="flex items-center justify-between border-t px-4 py-3">
-                  <span className="text-sm text-muted-foreground">
-                    Total Records {pagination.total}
-                  </span>
-                  <PaginationBar {...pagination} onPageChange={setPage} />
-                </div>
-              )}
-            </Card>
+            <div className={isFetching ? 'opacity-70 transition-opacity' : 'transition-opacity'}>
+              <LeadsGridBox
+                title=""
+                leads={leads}
+                total={pagination?.total ?? 0}
+                page={page}
+                pageSize={filters.pageSize ?? 12}
+                selected={selected}
+                onToggle={toggleOne}
+                onPageChange={setPage}
+                showSource
+              />
+            </div>
+          )}
+            </>
           )}
         </div>
       </div>
@@ -396,55 +377,15 @@ export default function LeadsPage() {
   );
 }
 
-function FilterSelect({
-  value,
-  onChange,
-  placeholder,
-  options,
-}: {
-  value: string;
-  onChange: (v: string) => void;
-  placeholder: string;
-  options: { value: string; label: string }[];
-}) {
+function GridSkeleton() {
   return (
-    <Select value={value} onValueChange={onChange}>
-      <SelectTrigger className="h-9 w-auto min-w-[130px]">
-        <SelectValue placeholder={placeholder} />
-      </SelectTrigger>
-      <SelectContent>
-        <SelectItem value={ALL}>All {placeholder.toLowerCase()}</SelectItem>
-        {options.map((o) => (
-          <SelectItem key={o.value} value={o.value}>{o.label}</SelectItem>
-        ))}
-      </SelectContent>
-    </Select>
+    <div className="grid gap-3 sm:grid-cols-2 xl:grid-cols-3">
+      {[...Array(6)].map((_, i) => (
+        <Skeleton key={i} className="h-36 w-full rounded-xl" />
+      ))}
+    </div>
   );
 }
-
-function SortHead({
-  label,
-  col,
-  sortBy,
-  order,
-  onSort,
-}: {
-  label: string;
-  col: string;
-  sortBy: string;
-  order: string;
-  onSort: (c: string) => void;
-}) {
-  return (
-    <TableHead>
-      <button onClick={() => onSort(col)} className="flex items-center gap-1 hover:text-foreground">
-        {label}
-        <ArrowUpDown className={`h-3 w-3 ${sortBy === col ? 'text-primary' : 'opacity-40'}`} />
-      </button>
-    </TableHead>
-  );
-}
-
 function FilterSidebarItem({
   label,
   count,
@@ -469,24 +410,5 @@ function FilterSidebarItem({
       </button>
       {open && children}
     </div>
-  );
-}
-
-function TableSkeleton() {
-  return (
-    <Card className="divide-y">
-      {[...Array(8)].map((_, i) => (
-        <div key={i} className="flex items-center gap-4 p-4">
-          <Skeleton className="h-4 w-4" />
-          <div className="flex-1 space-y-2">
-            <Skeleton className="h-4 w-40" />
-            <Skeleton className="h-3 w-24" />
-          </div>
-          <Skeleton className="h-6 w-20" />
-          <Skeleton className="h-6 w-16" />
-          <Skeleton className="h-6 w-24" />
-        </div>
-      ))}
-    </Card>
   );
 }

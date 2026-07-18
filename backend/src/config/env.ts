@@ -72,4 +72,11 @@ export const env = {
     password: process.env.SEED_ADMIN_PASSWORD ?? 'Admin@12345',
     name: process.env.SEED_ADMIN_NAME ?? 'MPF Super Admin',
   },
+
+  mpf: {
+    /** Shared secret for MPF → CRM webhook and CRM → MPF export */
+    webhookKey: process.env.MPF_CRM_WEBHOOK_KEY ?? '',
+    apiUrl: process.env.MPF_API_URL ?? 'https://apis.mypropertyfact.in/api/v1',
+    apiKey: process.env.MPF_CRM_WEBHOOK_KEY ?? '',
+  },
 };

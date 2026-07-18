@@ -118,72 +118,11 @@ async function seedSuperAdmin() {
   logger.info(`✅ Super admin created: ${env.seed.email} / ${env.seed.password}`);
 }
 
-async function seedDemoData() {
-  const countRow = await queryOne<{ total: number }>(`SELECT COUNT(*) AS total FROM builders`);
-  if (Number(countRow?.total ?? 0) > 0) {
-    logger.info('Demo data already present, skipping');
-    return;
-  }
-  const admin = await queryOne<{ id: number }>(`SELECT id FROM users WHERE email = ?`, [env.seed.email]);
-  const adminId = admin?.id ?? null;
-
-  const builders = [
-    ['Prestige Group', 'Bangalore', 'a', 42],
-    ['Godrej Properties', 'Mumbai', 'a', 38],
-    ['DLF Limited', 'Gurugram', 'a', 55],
-    ['Sobha Realty', 'Bangalore', 'b', 21],
-    ['Lodha Group', 'Mumbai', 'b', 30],
-  ] as const;
-  const builderIds: number[] = [];
-  for (const [name, city, tier, projects] of builders) {
-    const [r]: any = await pool.execute(
-      `INSERT INTO builders (name, city, state, tier, projects_count, status, created_by)
-       VALUES (?, ?, ?, ?, ?, 'active', ?)`,
-      [name, city, city, tier, projects, adminId],
-    );
-    builderIds.push(r.insertId);
-  }
-
-  const sources = ['website', 'meta', 'google', 'referral', 'walk_in'];
-  const statuses = ['new', 'contacted', 'qualified', 'site_visit', 'negotiation', 'booked', 'lost'];
-  const cities = ['Bangalore', 'Mumbai', 'Gurugram', 'Pune', 'Hyderabad'];
-  const names = ['Rahul Sharma', 'Priya Patel', 'Amit Kumar', 'Sneha Reddy', 'Vikram Singh', 'Anjali Gupta', 'Karan Mehta', 'Divya Nair', 'Rohit Verma', 'Neha Joshi'];
-
-  for (let i = 0; i < 40; i++) {
-    const status = statuses[Math.floor(Math.random() * statuses.length)];
-    const value = status === 'booked' ? 5000000 + Math.floor(Math.random() * 15000000) : 0;
-    await pool.execute(
-      `INSERT INTO leads (name, email, phone, source, status, score, priority, budget_min, budget_max,
-                          city, builder_id, assigned_to, owner_id, expected_value, next_follow_up_at)
-       VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, DATE_ADD(NOW(), INTERVAL ? DAY))`,
-      [
-        names[i % names.length] + ' ' + (i + 1),
-        `lead${i + 1}@example.com`,
-        `98${String(10000000 + i).slice(0, 8)}`,
-        sources[Math.floor(Math.random() * sources.length)],
-        status,
-        Math.floor(Math.random() * 100),
-        ['low', 'medium', 'high'][Math.floor(Math.random() * 3)],
-        3000000,
-        8000000,
-        cities[Math.floor(Math.random() * cities.length)],
-        builderIds[Math.floor(Math.random() * builderIds.length)],
-        adminId,
-        adminId,
-        value,
-        Math.floor(Math.random() * 10) - 2,
-      ],
-    );
-  }
-  logger.info('✅ Seeded demo builders & leads');
-}
-
 async function main() {
   await upsertRoles();
   await upsertPermissions();
   await mapRolePermissions();
   await seedSuperAdmin();
-  await seedDemoData();
   await pool.end();
   logger.info('🌱 Seed complete');
 }

@@ -32,11 +32,12 @@ function toParams(f: LeadFilters) {
   return p.toString();
 }
 
-export function useLeads(filters: LeadFilters) {
+export function useLeads(filters: LeadFilters, options?: { enabled?: boolean }) {
   return useQuery({
     queryKey: key.list(filters),
     queryFn: () => apiGet<Paginated<Lead>>(`/leads?${toParams(filters)}`),
     placeholderData: keepPreviousData,
+    enabled: options?.enabled ?? true,
   });
 }
 
@@ -138,5 +139,22 @@ export function useBulkLeads() {
       });
     },
     onError: (err) => toast.error(apiError(err, 'Bulk action failed')),
+  });
+}
+
+export function useSyncMpfEnquiries() {
+  const qc = useQueryClient();
+  return useMutation({
+    mutationFn: () =>
+      apiPost<{ created: number; updated: number; total: number; skipped?: number }>('/integrations/mpf/sync', {}),
+    onSuccess: (data) => {
+      qc.invalidateQueries({ queryKey: key.all });
+      qc.invalidateQueries({ queryKey: ['dashboard'] });
+      const skipped = data.skipped ? `, ${data.skipped} skipped` : '';
+      toast.success('My Property Fact sync complete', {
+        description: `${data.created} new, ${data.updated} updated (${data.total} total${skipped}).`,
+      });
+    },
+    onError: (err) => toast.error(apiError(err, 'Could not sync MPF enquiries')),
   });
 }

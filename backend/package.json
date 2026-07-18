@@ -13,6 +13,8 @@
     "start": "node dist/server.js",
     "start:dist": "nodemon dist/server.js",
     "db:migrate": "tsx src/db/migrate.ts",
+    "db:patch-mpf": "tsx src/db/patch-mpf.ts",
+    "db:clean-demo": "tsx src/db/clean-demo.ts",
     "db:seed": "tsx src/db/seed.ts",
     "lint": "eslint \"src/**/*.ts\"",
     "typecheck": "tsc --noEmit"

@@ -8,6 +8,8 @@ import dashboardRoutes from '../modules/dashboard/dashboard.routes.js';
 import notificationsRoutes from '../modules/notifications/notifications.routes.js';
 import searchRoutes from '../modules/search/search.routes.js';
 
+import integrationsRoutes from '../modules/integrations/integrations.routes.js';
+
 const router = Router();
 
 router.use('/auth', authRoutes);
@@ -18,5 +20,6 @@ router.use('/builders', buildersRoutes);
 router.use('/dashboard', dashboardRoutes);
 router.use('/notifications', notificationsRoutes);
 router.use('/search', searchRoutes);
+router.use('/integrations', integrationsRoutes);
 
 export default router;

@@ -140,8 +140,10 @@ CREATE TABLE IF NOT EXISTS leads (
   email             VARCHAR(191) NULL,
   phone             VARCHAR(20)  NOT NULL,
   alt_phone         VARCHAR(20)  NULL,
-  source            ENUM('website','meta','google','referral','walk_in','manual','import','other')
+  source            ENUM('website','meta','google','referral','walk_in','manual','import','other','my_property_fact')
                       NOT NULL DEFAULT 'manual',
+  external_source   VARCHAR(32)  NULL,                          -- e.g. mpf_enquiry
+  external_id       VARCHAR(64)  NULL,                          -- upstream record id for sync dedup
   campaign          VARCHAR(160) NULL,
   status            ENUM('new','contacted','qualified','site_visit','negotiation','booked','lost')
                       NOT NULL DEFAULT 'new',
@@ -170,6 +172,7 @@ CREATE TABLE IF NOT EXISTS leads (
   INDEX idx_lead_assigned (assigned_to),
   INDEX idx_lead_followup (next_follow_up_at),
   INDEX idx_lead_phone (phone),
+  UNIQUE KEY uq_lead_external (external_source, external_id),
   FULLTEXT KEY ft_lead (name, email, phone, location_pref, city)
 ) ENGINE=InnoDB;
 

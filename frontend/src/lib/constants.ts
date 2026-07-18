@@ -31,6 +31,7 @@ export const LEAD_SOURCE_META: Record<LeadSource, { label: string }> = {
   manual: { label: 'Manual' },
   import: { label: 'Import' },
   other: { label: 'Other' },
+  my_property_fact: { label: 'My Property Fact' },
 };
 
 export const PRIORITY_META: Record<Priority, { label: string; variant: BadgeVariant }> = {

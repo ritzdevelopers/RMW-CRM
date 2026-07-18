@@ -19,6 +19,7 @@ export const LEAD_SOURCES = [
   'manual',
   'import',
   'other',
+  'my_property_fact',
 ] as const;
 
 export const PRIORITIES = ['low', 'medium', 'high'] as const;
