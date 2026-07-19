@@ -40,8 +40,9 @@ Use any managed MySQL 8 provider (Railway, PlanetScale, AWS RDS, Aiven, etc.).
    JWT_REFRESH_SECRET=<64+ random chars>
    JWT_ACCESS_EXPIRES_IN=15m
    JWT_REFRESH_EXPIRES_IN=7d
-   COOKIE_DOMAIN=your-backend.onrender.com
+   COOKIE_DOMAIN=
    COOKIE_SECURE=true
+   COOKIE_SAME_SITE=lax
    APP_URL=https://your-frontend.vercel.app
    ```
 5. After first deploy, seed roles/permissions/admin via Render Shell:
@@ -62,8 +63,10 @@ Use any managed MySQL 8 provider (Railway, PlanetScale, AWS RDS, Aiven, etc.).
    - **Build Command**: `npm run build` (default)
 3. Environment variable:
    ```
-   NEXT_PUBLIC_API_URL=https://your-backend.onrender.com/api/v1
+   NEXT_PUBLIC_API_URL=/api/v1
+   API_PROXY_TARGET=https://your-backend.onrender.com
    ```
+   Using `/api/v1` proxies auth through Vercel so refresh cookies are first-party (required for login to persist).
 4. Deploy. Update the backend `CORS_ORIGINS` and `APP_URL` to the final Vercel URL, then redeploy the backend.
 
 ---

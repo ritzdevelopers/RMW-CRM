@@ -1,24 +1,22 @@
 'use client';
 
 import * as React from 'react';
-import axios from 'axios';
 import { useAuthStore } from '@/lib/auth-store';
 import { api } from '@/lib/api';
 
-const API_URL = process.env.NEXT_PUBLIC_API_URL ?? 'https://rmw-crm-1.onrender.com/api/v1';
-
 /**
- * On first load, silently refreshes the session (httpOnly cookie) and
- * hydrates the auth store. Renders children immediately; guards handle gating.
+ * On first load, hydrates access token from sessionStorage, then refreshes
+ * the httpOnly cookie session and loads the current user.
  */
 export function AuthBootstrap({ children }: { children: React.ReactNode }) {
-  const { setAuth, setInitialized } = useAuthStore();
+  const { setAuth, setInitialized, hydrateToken } = useAuthStore();
 
   React.useEffect(() => {
     let mounted = true;
     (async () => {
+      hydrateToken();
       try {
-        const res = await axios.post(`${API_URL}/auth/refresh`, {}, { withCredentials: true });
+        const res = await api.post('/auth/refresh', {});
         const token = res.data?.data?.accessToken;
         if (token && mounted) {
           useAuthStore.getState().setAccessToken(token);
@@ -27,7 +25,7 @@ export function AuthBootstrap({ children }: { children: React.ReactNode }) {
           setAuth({ user, accessToken: token, permissions });
         }
       } catch {
-        // no active session — that's fine
+        // no active session — sessionStorage token may still work until expiry
       } finally {
         if (mounted) setInitialized(true);
       }

@@ -4,26 +4,14 @@ import { ok, created } from '../../utils/respond.js';
 import { env } from '../../config/env.js';
 import { clientIp, audit } from '../../utils/audit.js';
 import { ApiError } from '../../utils/ApiError.js';
+import { refreshCookieOptions } from '../../utils/cookies.js';
 
 function setRefreshCookie(res: Response, token: string, expiresAt: Date) {
-  res.cookie(env.cookie.refreshName, token, {
-    httpOnly: true,
-    secure: env.cookie.secure,
-    sameSite: env.isProd ? 'none' : 'lax',
-    domain: env.cookie.domain,
-    path: env.apiPrefix + '/auth',
-    expires: expiresAt,
-  });
+  res.cookie(env.cookie.refreshName, token, refreshCookieOptions(expiresAt));
 }
 
 function clearRefreshCookie(res: Response) {
-  res.clearCookie(env.cookie.refreshName, {
-    httpOnly: true,
-    secure: env.cookie.secure,
-    sameSite: env.isProd ? 'none' : 'lax',
-    domain: env.cookie.domain,
-    path: env.apiPrefix + '/auth',
-  });
+  res.clearCookie(env.cookie.refreshName, refreshCookieOptions());
 }
 
 export async function register(req: Request, res: Response) {

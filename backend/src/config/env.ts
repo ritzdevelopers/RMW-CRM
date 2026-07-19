@@ -46,8 +46,11 @@ export const env = {
   },
 
   cookie: {
-    domain: process.env.COOKIE_DOMAIN ?? 'localhost',
+    /** Omit on Render/Vercel proxy setups; only set for custom domains. */
+    domain: (process.env.COOKIE_DOMAIN ?? '').trim(),
     secure: process.env.COOKIE_SECURE === 'true',
+    /** Use `none` only for direct cross-origin API calls (no Next.js proxy). */
+    sameSite: (process.env.COOKIE_SAME_SITE === 'none' ? 'none' : 'lax') as 'lax' | 'none' | 'strict',
     refreshName: 'mpf_rt',
   },
 

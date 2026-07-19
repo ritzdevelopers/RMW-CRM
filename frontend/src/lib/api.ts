@@ -1,7 +1,9 @@
 import axios, { AxiosError, type AxiosRequestConfig } from 'axios';
 import { authToken } from './auth-store';
 
-const API_URL = process.env.NEXT_PUBLIC_API_URL ?? 'https://rmw-crm-1.onrender.com/api/v1';
+const API_URL =
+  process.env.NEXT_PUBLIC_API_URL ??
+  (typeof window !== 'undefined' ? '/api/v1' : 'https://rmw-crm-1.onrender.com/api/v1');
 
 export const api = axios.create({
   baseURL: API_URL,
