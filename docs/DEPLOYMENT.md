@@ -26,7 +26,7 @@ Use any managed MySQL 8 provider (Railway, PlanetScale, AWS RDS, Aiven, etc.).
 3. Settings:
    - **Root Directory**: `backend`
    - **Runtime**: Node
-   - **Build Command**: `npm install && npm run build`
+   - **Build Command**: `NPM_CONFIG_PRODUCTION=false npm install && npm run build`
    - **Start Command**: `npm start`
    - **Health Check Path**: `/health`
 4. Environment variables (from `backend/.env.example`):
