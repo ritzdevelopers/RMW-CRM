@@ -28,3 +28,12 @@ export function getInitials(name?: string | null): string {
     .map((n) => n[0]?.toUpperCase())
     .join('');
 }
+
+export function isNewLead(lead: { created_at?: string }): boolean {
+  if (!lead.created_at) return false;
+  const created = new Date(lead.created_at);
+  if (Number.isNaN(created.getTime())) return false;
+  const startOfToday = new Date();
+  startOfToday.setHours(0, 0, 0, 0);
+  return created.getTime() >= startOfToday.getTime();
+}

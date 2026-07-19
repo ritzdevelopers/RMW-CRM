@@ -9,6 +9,7 @@ import { PaginationBar } from '@/components/shared/pagination-bar';
 import { LeadMiniCard } from '@/components/leads/lead-mini-card';
 import { LEAD_SOURCE_META } from '@/lib/constants';
 import { useLeads, useSyncMpfEnquiries } from '@/hooks/use-leads';
+import { isNewLead } from '@/lib/utils';
 import type { LeadSource } from '@/types';
 
 const SOURCE_ICONS: Partial<Record<LeadSource, typeof Globe>> = {
@@ -103,7 +104,7 @@ export function LeadSourceBoxes({
   );
 }
 
-function MpfLeadsPanel({ totalCount, canSync }: { totalCount: number; canSync?: boolean }) {
+export function MpfLeadsPanel({ totalCount, canSync }: { totalCount: number; canSync?: boolean }) {
   const [page, setPage] = React.useState(1);
   const pageSize = 15;
   const mpfSync = useSyncMpfEnquiries();
@@ -117,6 +118,7 @@ function MpfLeadsPanel({ totalCount, canSync }: { totalCount: number; canSync?: 
   });
 
   const leads = data?.data ?? [];
+  const newCount = React.useMemo(() => leads.filter((l) => isNewLead(l)).length, [leads]);
   const total = data?.pagination?.total ?? totalCount;
   const pagination = {
     page,
@@ -129,7 +131,14 @@ function MpfLeadsPanel({ totalCount, canSync }: { totalCount: number; canSync?: 
     <Card className="overflow-hidden border-orange-200/80 bg-gradient-to-br from-orange-50/50 to-background dark:from-orange-950/15">
       <div className="flex items-center justify-between border-b border-orange-200/60 px-4 py-3 dark:border-orange-900/40">
         <div>
-          <p className="text-sm font-semibold">My Property Fact Leads</p>
+          <div className="flex items-center gap-2">
+            <p className="text-sm font-semibold">My Property Fact Leads</p>
+            {newCount > 0 && (
+              <span className="inline-flex items-center gap-1 rounded-full bg-orange-500 px-2 py-0.5 text-[10px] font-semibold text-white">
+                {newCount} new
+              </span>
+            )}
+          </div>
           <p className="text-xs text-muted-foreground">{total} enquiries from mypropertyfact.in</p>
         </div>
         {canSync && (

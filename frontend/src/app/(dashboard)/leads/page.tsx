@@ -1,6 +1,7 @@
 'use client';
 
 import * as React from 'react';
+import Image from 'next/image';
 import { useSearchParams, useRouter } from 'next/navigation';
 import {
   Plus,
@@ -15,7 +16,9 @@ import {
   Download,
   Filter,
   SlidersHorizontal,
-  ChevronDown,
+  Check,
+  ArrowRight,
+  ArrowLeft,
 } from 'lucide-react';
 import { EmptyState } from '@/components/shared/empty-state';
 import { Button } from '@/components/ui/button';
@@ -28,10 +31,15 @@ import {
   DropdownMenuItem,
   DropdownMenuTrigger,
 } from '@/components/ui/dropdown-menu';
+import {
+  Popover,
+  PopoverContent,
+  PopoverTrigger,
+} from '@/components/ui/popover';
 import { LeadFormDialog } from '@/components/leads/lead-form-dialog';
 import { LeadsKanban } from '@/components/leads/leads-kanban';
 import { LeadsGridBox } from '@/components/leads/leads-grid-box';
-import { LeadSourceBoxes, ALL_SOURCES } from '@/components/leads/lead-source-boxes';
+import { MpfLeadsPanel } from '@/components/leads/lead-source-boxes';
 import { useLeads, useBulkLeads, type LeadFilters } from '@/hooks/use-leads';
 import { useDashboardOverview } from '@/hooks/use-dashboard';
 import { useAssignableUsers } from '@/hooks/use-users';
@@ -48,6 +56,19 @@ function useDebounced<T>(value: T, delay = 300): T {
 }
 
 const ALL = 'all';
+
+const SORT_OPTIONS: { value: string; label: string }[] = [
+  { value: 'created_at', label: 'Date created' },
+  { value: 'updated_at', label: 'Last updated' },
+  { value: 'name', label: 'Name' },
+  { value: 'score', label: 'Score' },
+];
+
+const PRIORITY_OPTIONS = [
+  { value: 'high', label: 'High', color: 'bg-red-500' },
+  { value: 'medium', label: 'Medium', color: 'bg-amber-500' },
+  { value: 'low', label: 'Low', color: 'bg-green-500' },
+];
 
 export default function LeadsPage() {
   const params = useSearchParams();
@@ -104,12 +125,7 @@ export default function LeadsPage() {
     return counts;
   }, [overview?.sources]);
 
-  const activeSourceBox = source !== ALL ? source : ALL_SOURCES;
-  const handleSourceBoxChange = (next: string) => {
-    setMpfOpen(false);
-    setSource(next === ALL_SOURCES ? ALL : next);
-    setPage(1);
-  };
+  const mpfCount = sourceCounts['my_property_fact'] ?? 0;
 
   const handleMpfToggle = () => {
     setMpfOpen((v) => !v);
@@ -155,13 +171,135 @@ export default function LeadsPage() {
       </div>
 
       {/* Toolbar */}
-      <div className="flex items-center gap-2 border-b pb-3">
-        <Button variant="outline" size="sm" className="gap-1.5">
-          <Filter className="h-4 w-4" /> Filter
-        </Button>
-        <Button variant="outline" size="sm" className="gap-1.5">
-          <SlidersHorizontal className="h-4 w-4" /> Sort
-        </Button>
+      <div className="flex flex-wrap items-center gap-2 border-b pb-3">
+        <div className="relative w-full sm:w-64">
+          <Search className="absolute left-3 top-1/2 h-4 w-4 -translate-y-1/2 text-muted-foreground" />
+          <Input
+            placeholder="Search leads..."
+            value={search}
+            onChange={(e) => setSearch(e.target.value)}
+            className="h-9 pl-9"
+          />
+        </div>
+
+        {/* Filter popover */}
+        <Popover>
+          <PopoverTrigger asChild>
+            <Button variant="outline" size="sm" className="gap-1.5">
+              <Filter className="h-4 w-4" /> Filter
+              {activeFilters > 0 && (
+                <span className="ml-0.5 flex h-5 min-w-5 items-center justify-center rounded-full bg-primary px-1.5 text-xs font-semibold text-primary-foreground">
+                  {activeFilters}
+                </span>
+              )}
+            </Button>
+          </PopoverTrigger>
+          <PopoverContent align="start" className="w-64 p-0">
+            <div className="max-h-[70vh] overflow-y-auto p-3">
+              <FilterGroup label="Status">
+                {LEAD_STATUS_ORDER.map((s) => (
+                  <FilterOption
+                    key={s}
+                    active={status === s}
+                    onClick={() => setStatus(status === s ? ALL : s)}
+                    dot={
+                      LEAD_STATUS_META[s].variant === 'success'
+                        ? 'bg-green-500'
+                        : LEAD_STATUS_META[s].variant === 'warning'
+                          ? 'bg-amber-500'
+                          : LEAD_STATUS_META[s].variant === 'destructive'
+                            ? 'bg-red-500'
+                            : 'bg-blue-500'
+                    }
+                  >
+                    {LEAD_STATUS_META[s].label}
+                  </FilterOption>
+                ))}
+              </FilterGroup>
+
+              <FilterGroup label="Source">
+                {Object.entries(LEAD_SOURCE_META).map(([k, m]) => (
+                  <FilterOption
+                    key={k}
+                    active={source === k}
+                    onClick={() => setSource(source === k ? ALL : k)}
+                  >
+                    {m.label}
+                  </FilterOption>
+                ))}
+              </FilterGroup>
+
+              <FilterGroup label="Priority">
+                {PRIORITY_OPTIONS.map((p) => (
+                  <FilterOption
+                    key={p.value}
+                    active={priority === p.value}
+                    onClick={() => setPriority(priority === p.value ? ALL : p.value)}
+                    dot={p.color}
+                  >
+                    {p.label}
+                  </FilterOption>
+                ))}
+              </FilterGroup>
+            </div>
+            {activeFilters > 0 && (
+              <div className="border-t p-2">
+                <Button variant="ghost" size="sm" className="w-full" onClick={clearFilters}>
+                  <X className="h-4 w-4" /> Clear all filters
+                </Button>
+              </div>
+            )}
+          </PopoverContent>
+        </Popover>
+
+        {/* Sort popover */}
+        <Popover>
+          <PopoverTrigger asChild>
+            <Button variant="outline" size="sm" className="gap-1.5">
+              <SlidersHorizontal className="h-4 w-4" /> Sort
+            </Button>
+          </PopoverTrigger>
+          <PopoverContent align="start" className="w-56 p-3">
+            <p className="mb-2 px-1 text-xs font-semibold uppercase tracking-wide text-muted-foreground">
+              Sort by
+            </p>
+            <div className="space-y-0.5">
+              {SORT_OPTIONS.map((o) => (
+                <FilterOption key={o.value} active={sortBy === o.value} onClick={() => setSortBy(o.value)}>
+                  {o.label}
+                </FilterOption>
+              ))}
+            </div>
+            <div className="mt-3 border-t pt-3">
+              <p className="mb-2 px-1 text-xs font-semibold uppercase tracking-wide text-muted-foreground">
+                Order
+              </p>
+              <div className="grid grid-cols-2 gap-1.5">
+                <Button
+                  variant={order === 'desc' ? 'secondary' : 'ghost'}
+                  size="sm"
+                  onClick={() => setOrder('desc')}
+                >
+                  Newest
+                </Button>
+                <Button
+                  variant={order === 'asc' ? 'secondary' : 'ghost'}
+                  size="sm"
+                  onClick={() => setOrder('asc')}
+                >
+                  Oldest
+                </Button>
+              </div>
+            </div>
+          </PopoverContent>
+        </Popover>
+
+        {activeFilters > 0 && (
+          <Button variant="ghost" size="sm" className="gap-1.5 text-muted-foreground" onClick={clearFilters}>
+            <X className="h-4 w-4" /> Clear
+          </Button>
+        )}
+
         <div className="ml-auto flex items-center rounded-lg border p-0.5">
           <Button variant={view === 'grid' ? 'secondary' : 'ghost'} size="sm" className="h-7 px-2" onClick={() => setView('grid')}>
             <LayoutGrid className="h-4 w-4" />
@@ -172,104 +310,25 @@ export default function LeadsPage() {
         </div>
       </div>
 
-      {/* Main content with sidebar */}
+      {/* Main content */}
       <div className="flex gap-4">
-        {/* Filter Sidebar */}
-        <div className="hidden w-64 shrink-0 lg:block">
-          <Card className="p-4">
-            <h3 className="mb-3 text-sm font-semibold">Filter Leads by</h3>
-            <div className="relative mb-4">
-              <Search className="absolute left-3 top-1/2 h-4 w-4 -translate-y-1/2 text-muted-foreground" />
-              <Input
-                placeholder="Search"
-                value={search}
-                onChange={(e) => setSearch(e.target.value)}
-                className="h-9 pl-9"
-              />
-            </div>
-
-            <div className="space-y-1">
-              <FilterSidebarItem 
-                label="Status" 
-                count={LEAD_STATUS_ORDER.length}
-                active={status !== ALL}
-                onClick={() => {}}
-              >
-                <div className="space-y-1 py-2">
-                  {LEAD_STATUS_ORDER.map((s) => (
-                    <button
-                      key={s}
-                      onClick={() => setStatus(status === s ? ALL : s)}
-                      className={`flex w-full items-center gap-2 rounded px-2 py-1.5 text-left text-sm transition-colors hover:bg-accent ${status === s ? 'bg-primary/10 text-primary' : ''}`}
-                    >
-                      <span className={`h-2 w-2 rounded-full ${LEAD_STATUS_META[s].variant === 'success' ? 'bg-green-500' : LEAD_STATUS_META[s].variant === 'warning' ? 'bg-amber-500' : LEAD_STATUS_META[s].variant === 'destructive' ? 'bg-red-500' : 'bg-blue-500'}`} />
-                      {LEAD_STATUS_META[s].label}
-                    </button>
-                  ))}
-                </div>
-              </FilterSidebarItem>
-
-              <FilterSidebarItem 
-                label="Source" 
-                count={Object.keys(LEAD_SOURCE_META).length}
-                active={source !== ALL}
-                onClick={() => {}}
-              >
-                <div className="space-y-1 py-2">
-                  {Object.entries(LEAD_SOURCE_META).map(([k, m]) => (
-                    <button
-                      key={k}
-                      onClick={() => setSource(source === k ? ALL : k)}
-                      className={`flex w-full items-center gap-2 rounded px-2 py-1.5 text-left text-sm transition-colors hover:bg-accent ${source === k ? 'bg-primary/10 text-primary' : ''}`}
-                    >
-                      {m.label}
-                    </button>
-                  ))}
-                </div>
-              </FilterSidebarItem>
-
-              <FilterSidebarItem 
-                label="Priority" 
-                count={3}
-                active={priority !== ALL}
-                onClick={() => {}}
-              >
-                <div className="space-y-1 py-2">
-                  {[{ value: 'high', label: 'High', color: 'bg-red-500' }, { value: 'medium', label: 'Medium', color: 'bg-amber-500' }, { value: 'low', label: 'Low', color: 'bg-green-500' }].map((p) => (
-                    <button
-                      key={p.value}
-                      onClick={() => setPriority(priority === p.value ? ALL : p.value)}
-                      className={`flex w-full items-center gap-2 rounded px-2 py-1.5 text-left text-sm transition-colors hover:bg-accent ${priority === p.value ? 'bg-primary/10 text-primary' : ''}`}
-                    >
-                      <span className={`h-2 w-2 rounded-full ${p.color}`} />
-                      {p.label}
-                    </button>
-                  ))}
-                </div>
-              </FilterSidebarItem>
-            </div>
-
-            {activeFilters > 0 && (
-              <Button variant="ghost" size="sm" className="mt-4 w-full" onClick={clearFilters}>
-                <X className="h-4 w-4" /> Clear all filters
-              </Button>
-            )}
-          </Card>
-        </div>
-
-        {/* Table/Content area */}
         <div className="min-w-0 flex-1 space-y-4">
-          <LeadSourceBoxes
-            counts={sourceCounts}
-            total={overview?.stats?.totalLeads ?? pagination?.total ?? 0}
-            activeSource={activeSourceBox}
-            mpfOpen={mpfOpen}
-            onSourceChange={handleSourceBoxChange}
-            onMpfToggle={handleMpfToggle}
-            canSync={can('leads.import')}
-          />
+          {mpfOpen && (
+            <div className="space-y-3">
+              <Button variant="ghost" size="sm" className="gap-1.5 text-muted-foreground" onClick={handleMpfToggle}>
+                <ArrowLeft className="h-4 w-4" /> Back
+              </Button>
+              <MpfLeadsPanel totalCount={mpfCount} canSync={can('leads.import')} />
+            </div>
+          )}
 
-          {!mpfOpen && (
+          {!mpfOpen && source === ALL && view === 'grid' && (
+            <div className="grid gap-4 sm:grid-cols-2 lg:grid-cols-3 xl:grid-cols-4">
+              <MpfFeatureBox count={mpfCount} onOpen={handleMpfToggle} />
+            </div>
+          )}
+
+          {!mpfOpen && !(source === ALL && view === 'grid') && (
             <>
           <div className="flex items-center justify-between pt-2">
             <h2 className="text-base font-semibold">
@@ -386,29 +445,62 @@ function GridSkeleton() {
     </div>
   );
 }
-function FilterSidebarItem({
-  label,
-  count,
+
+function MpfFeatureBox({ count, onOpen }: { count: number; onOpen: () => void }) {
+  return (
+    <button type="button" onClick={onOpen} className="block text-left">
+      <Card className="group flex aspect-square flex-col items-center justify-center gap-3 overflow-hidden border-orange-200/80 bg-gradient-to-br from-orange-50 to-background p-5 text-center transition-all hover:shadow-lg dark:border-orange-900/50 dark:from-orange-950/25">
+        <div className="flex h-20 w-20 shrink-0 items-center justify-center rounded-2xl bg-slate-900 p-2.5 shadow-md dark:bg-slate-950">
+          <Image
+            src="/images/mpf-logo.png"
+            alt="My Property Fact"
+            width={80}
+            height={80}
+            className="h-full w-full object-contain"
+          />
+        </div>
+        <div>
+          <p className="text-base font-semibold leading-tight tracking-tight">My Property Fact</p>
+          <p className="mt-1 text-xs text-muted-foreground">{count} enquiries</p>
+        </div>
+        <span className="inline-flex items-center gap-1.5 rounded-lg bg-orange-500 px-3 py-1.5 text-xs font-medium text-white shadow-sm transition-colors group-hover:bg-orange-600">
+          View leads <ArrowRight className="h-3.5 w-3.5" />
+        </span>
+      </Card>
+    </button>
+  );
+}
+function FilterGroup({ label, children }: { label: string; children: React.ReactNode }) {
+  return (
+    <div className="border-b py-2 last:border-0">
+      <p className="mb-1 px-1 text-xs font-semibold uppercase tracking-wide text-muted-foreground">
+        {label}
+      </p>
+      <div className="space-y-0.5">{children}</div>
+    </div>
+  );
+}
+
+function FilterOption({
   active,
+  onClick,
+  dot,
   children,
 }: {
-  label: string;
-  count: number;
   active: boolean;
   onClick: () => void;
+  dot?: string;
   children: React.ReactNode;
 }) {
-  const [open, setOpen] = React.useState(false);
   return (
-    <div className="border-b last:border-0">
-      <button
-        onClick={() => setOpen(!open)}
-        className={`flex w-full items-center justify-between py-2.5 text-left text-sm hover:text-primary ${active ? 'font-medium text-primary' : ''}`}
-      >
-        <span>{label}</span>
-        <ChevronDown className={`h-4 w-4 text-muted-foreground transition-transform ${open ? 'rotate-180' : ''}`} />
-      </button>
-      {open && children}
-    </div>
+    <button
+      type="button"
+      onClick={onClick}
+      className={`flex w-full items-center gap-2 rounded px-2 py-1.5 text-left text-sm transition-colors hover:bg-accent ${active ? 'bg-primary/10 text-primary' : ''}`}
+    >
+      {dot && <span className={`h-2 w-2 shrink-0 rounded-full ${dot}`} />}
+      <span className="flex-1 truncate">{children}</span>
+      {active && <Check className="h-3.5 w-3.5 shrink-0" />}
+    </button>
   );
 }

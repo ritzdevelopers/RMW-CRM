@@ -1,6 +1,7 @@
 'use client';
 
 import Link from 'next/link';
+import Image from 'next/image';
 import { formatDistanceToNow } from 'date-fns';
 import {
   Users,
@@ -41,9 +42,11 @@ import { Badge } from '@/components/ui/badge';
 import { Skeleton } from '@/components/ui/skeleton';
 import { Avatar, AvatarFallback } from '@/components/ui/avatar';
 import { EmptyState } from '@/components/shared/empty-state';
+import { LeadMiniCard } from '@/components/leads/lead-mini-card';
 import { useDashboardOverview, useTodaysTasks, useRecentActivities } from '@/hooks/use-dashboard';
+import { useLeads } from '@/hooks/use-leads';
 import { useAuthStore } from '@/lib/auth-store';
-import { formatCurrency, formatNumber, getInitials } from '@/lib/utils';
+import { formatCurrency, formatNumber, getInitials, isNewLead } from '@/lib/utils';
 import { LEAD_STATUS_META, LEAD_STATUS_ORDER, LEAD_SOURCE_META } from '@/lib/constants';
 
 const ZOHO_BLUE = '#1d7af3';
@@ -54,8 +57,19 @@ export default function DashboardPage() {
   const { data, isLoading } = useDashboardOverview();
   const { data: tasks, isLoading: tasksLoading } = useTodaysTasks();
   const { data: activities, isLoading: actLoading } = useRecentActivities();
+  const { data: mpfData, isLoading: mpfLoading } = useLeads({
+    page: 1,
+    pageSize: 10,
+    source: 'my_property_fact',
+    sortBy: 'created_at',
+    order: 'desc',
+  });
 
   const stats = data?.stats;
+
+  const mpfLeads = mpfData?.data ?? [];
+  const mpfTotal = mpfData?.pagination?.total ?? 0;
+  const mpfNewCount = mpfLeads.filter(isNewLead).length;
 
   const trendData = (data?.trend ?? []).map((t) => ({
     month: t.month.slice(5),
@@ -155,6 +169,59 @@ export default function DashboardPage() {
         <StatCard loading={isLoading} index={4} label="Today's Tasks" value={formatNumber(stats?.todayFollowUps ?? 0)} icon={CheckSquare} accent="bg-violet-500/10 text-violet-500" />
         <StatCard loading={isLoading} index={5} label="Booked Deals" value={formatNumber(stats?.bookedDeals ?? 0)} icon={TrendingUp} accent="bg-rose-500/10 text-rose-500" />
       </div>
+
+      {/* My Property Fact leads */}
+      <Card className="overflow-hidden border-orange-200/80 bg-gradient-to-br from-orange-50/50 to-background dark:from-orange-950/15">
+        <CardHeader className="flex flex-row items-center justify-between space-y-0 border-b border-orange-200/60 dark:border-orange-900/40">
+          <div className="flex items-center gap-2">
+            <div className="flex h-10 w-10 items-center justify-center rounded-lg bg-slate-900 p-1.5 dark:bg-slate-950">
+              <Image
+                src="/images/mpf-logo.png"
+                alt="My Property Fact"
+                width={40}
+                height={40}
+                className="h-full w-full object-contain"
+              />
+            </div>
+            <div>
+              <CardTitle className="flex items-center gap-2 text-base">
+                My Property Fact Leads
+                {mpfNewCount > 0 && (
+                  <span className="inline-flex items-center gap-1 rounded-full bg-orange-500 px-2 py-0.5 text-[10px] font-semibold text-white">
+                    {mpfNewCount} new
+                  </span>
+                )}
+              </CardTitle>
+              <p className="text-xs text-muted-foreground">{mpfTotal} enquiries from mypropertyfact.in</p>
+            </div>
+          </div>
+          <Button asChild variant="ghost" size="sm" className="h-7 text-xs">
+            <Link href="/leads">View all <ArrowRight className="h-3.5 w-3.5" /></Link>
+          </Button>
+        </CardHeader>
+        <CardContent className="pt-4">
+          {mpfLoading ? (
+            <div className="grid gap-2.5 sm:grid-cols-2 md:grid-cols-3 lg:grid-cols-4 xl:grid-cols-5">
+              {[...Array(5)].map((_, i) => (
+                <Skeleton key={i} className="h-28 rounded-xl" />
+              ))}
+            </div>
+          ) : mpfLeads.length === 0 ? (
+            <EmptyState
+              icon={Building2}
+              title="No MPF leads yet"
+              description="Website enquiries from My Property Fact will appear here."
+              className="py-8"
+            />
+          ) : (
+            <div className="grid gap-2.5 sm:grid-cols-2 md:grid-cols-3 lg:grid-cols-4 xl:grid-cols-5">
+              {mpfLeads.map((lead) => (
+                <LeadMiniCard key={lead.id} lead={lead} />
+              ))}
+            </div>
+          )}
+        </CardContent>
+      </Card>
 
       {/* Charts row */}
       <div className="grid grid-cols-1 gap-4 lg:grid-cols-3">
