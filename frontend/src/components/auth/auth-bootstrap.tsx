@@ -13,23 +13,45 @@ export function AuthBootstrap({ children }: { children: React.ReactNode }) {
 
   React.useEffect(() => {
     let mounted = true;
+
+    async function loadSession(token: string): Promise<boolean> {
+      if (!token) return false;
+      useAuthStore.getState().setAccessToken(token);
+      try {
+        const meRes = await api.get('/auth/me');
+        const { user, permissions } = meRes.data.data;
+        if (mounted) setAuth({ user, accessToken: token, permissions });
+        return true;
+      } catch {
+        return false;
+      }
+    }
+
     (async () => {
       hydrateToken();
+      const storedToken = useAuthStore.getState().accessToken;
+
       try {
-        const res = await api.post('/auth/refresh', {});
-        const token = res.data?.data?.accessToken;
-        if (token && mounted) {
-          useAuthStore.getState().setAccessToken(token);
-          const meRes = await api.get('/auth/me');
-          const { user, permissions } = meRes.data.data;
-          setAuth({ user, accessToken: token, permissions });
+        // 1) Prefer rotating via the httpOnly refresh cookie (if present).
+        let refreshedToken: string | null = null;
+        try {
+          const res = await api.post('/auth/refresh', {});
+          refreshedToken = res.data?.data?.accessToken ?? null;
+        } catch {
+          // Cookie missing/blocked — fall back to the stored access token.
         }
-      } catch {
-        // no active session — sessionStorage token may still work until expiry
+
+        const ok = await loadSession(refreshedToken ?? storedToken ?? '');
+
+        // 2) Stored token expired/invalid → clear so guards send to login.
+        if (!ok && mounted) {
+          useAuthStore.getState().clear();
+        }
       } finally {
         if (mounted) setInitialized(true);
       }
     })();
+
     return () => {
       mounted = false;
     };

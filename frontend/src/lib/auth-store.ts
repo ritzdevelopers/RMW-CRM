@@ -6,7 +6,7 @@ const TOKEN_KEY = 'mpf_access_token';
 function readStoredToken(): string | null {
   if (typeof window === 'undefined') return null;
   try {
-    return sessionStorage.getItem(TOKEN_KEY);
+    return localStorage.getItem(TOKEN_KEY) ?? sessionStorage.getItem(TOKEN_KEY);
   } catch {
     return null;
   }
@@ -15,8 +15,12 @@ function readStoredToken(): string | null {
 function writeStoredToken(token: string | null) {
   if (typeof window === 'undefined') return;
   try {
-    if (token) sessionStorage.setItem(TOKEN_KEY, token);
-    else sessionStorage.removeItem(TOKEN_KEY);
+    if (token) {
+      localStorage.setItem(TOKEN_KEY, token);
+    } else {
+      localStorage.removeItem(TOKEN_KEY);
+      sessionStorage.removeItem(TOKEN_KEY);
+    }
   } catch {
     // private browsing / storage blocked
   }
