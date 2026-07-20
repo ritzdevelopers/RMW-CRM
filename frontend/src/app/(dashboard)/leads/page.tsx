@@ -24,7 +24,6 @@ import { EmptyState } from '@/components/shared/empty-state';
 import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
 import { Card } from '@/components/ui/card';
-import { Skeleton } from '@/components/ui/skeleton';
 import {
   DropdownMenu,
   DropdownMenuContent,
@@ -38,7 +37,8 @@ import {
 } from '@/components/ui/popover';
 import { LeadFormDialog } from '@/components/leads/lead-form-dialog';
 import { LeadsKanban } from '@/components/leads/leads-kanban';
-import { LeadsGridBox } from '@/components/leads/leads-grid-box';
+import { LeadsTable } from '@/components/leads/leads-table';
+import { PaginationBar } from '@/components/shared/pagination-bar';
 import { MpfLeadsPanel } from '@/components/leads/lead-source-boxes';
 import { useLeads, useBulkLeads, type LeadFilters } from '@/hooks/use-leads';
 import { useDashboardOverview } from '@/hooks/use-dashboard';
@@ -138,6 +138,9 @@ export default function LeadsPage() {
   const toggleOne = (id: number) =>
     setSelected((s) => (s.includes(id) ? s.filter((x) => x !== id) : [...s, id]));
 
+  const toggleAll = (ids: number[]) =>
+    setSelected((s) => (ids.every((id) => s.includes(id)) ? s.filter((id) => !ids.includes(id)) : Array.from(new Set([...s, ...ids]))));
+
   const runBulk = async (payload: { action: string; assignedTo?: number | null; status?: string }) => {
     await bulk.mutateAsync({ ids: selected, ...payload });
     setSelected([]);
@@ -151,7 +154,7 @@ export default function LeadsPage() {
   };
 
   return (
-    <div className="space-y-4">
+    <div className="flex h-full flex-col gap-4">
       {/* Header */}
       <div className="flex items-center justify-between">
         <div className="flex items-center gap-3">
@@ -311,11 +314,11 @@ export default function LeadsPage() {
       </div>
 
       {/* Main content */}
-      <div className="flex gap-4">
-        <div className="min-w-0 flex-1 space-y-4">
+      <div className="flex min-h-0 flex-1 gap-4">
+        <div className="flex min-h-0 min-w-0 flex-1 flex-col gap-4">
           {mpfOpen && (
-            <div className="space-y-3">
-              <Button variant="ghost" size="sm" className="gap-1.5 text-muted-foreground" onClick={handleMpfToggle}>
+            <div className="flex min-h-0 flex-1 flex-col gap-3">
+              <Button variant="ghost" size="sm" className="w-fit gap-1.5 text-muted-foreground" onClick={handleMpfToggle}>
                 <ArrowLeft className="h-4 w-4" /> Back
               </Button>
               <MpfLeadsPanel totalCount={mpfCount} canSync={can('leads.import')} />
@@ -329,8 +332,8 @@ export default function LeadsPage() {
           )}
 
           {!mpfOpen && !(source === ALL && view === 'grid') && (
-            <>
-          <div className="flex items-center justify-between pt-2">
+            <div className="flex min-h-0 flex-1 flex-col gap-3">
+          <div className="flex shrink-0 items-center justify-between pt-2">
             <h2 className="text-base font-semibold">
               {source !== ALL ? LEAD_SOURCE_META[source as keyof typeof LEAD_SOURCE_META]?.label ?? 'Leads' : 'All Leads'}
             </h2>
@@ -394,11 +397,10 @@ export default function LeadsPage() {
           )}
 
           {/* Content */}
+          <div className="flex min-h-0 flex-1 flex-col">
           {view === 'kanban' ? (
             <LeadsKanban leads={leads} loading={isLoading} />
-          ) : isLoading ? (
-            <GridSkeleton />
-          ) : leads.length === 0 ? (
+          ) : !isLoading && leads.length === 0 ? (
             <EmptyState
               icon={Users}
               title="No leads found"
@@ -412,36 +414,39 @@ export default function LeadsPage() {
               }
             />
           ) : (
-            <div className={isFetching ? 'opacity-70 transition-opacity' : 'transition-opacity'}>
-              <LeadsGridBox
-                title=""
+            <div className={`flex min-h-0 flex-1 flex-col gap-3 ${isFetching ? 'opacity-70 transition-opacity' : 'transition-opacity'}`}>
+              <LeadsTable
                 leads={leads}
-                total={pagination?.total ?? 0}
-                page={page}
-                pageSize={filters.pageSize ?? 12}
+                loading={isLoading}
                 selected={selected}
                 onToggle={toggleOne}
-                onPageChange={setPage}
+                onToggleAll={toggleAll}
                 showSource
+                fillHeight
               />
+              <div className="flex shrink-0 items-center justify-between px-1">
+                <span className="text-sm text-muted-foreground">
+                  Total Records <span className="font-medium text-foreground">{pagination?.total ?? 0}</span>
+                </span>
+                {(pagination?.totalPages ?? 1) > 1 && (
+                  <PaginationBar
+                    page={page}
+                    pageSize={filters.pageSize ?? 12}
+                    total={pagination?.total ?? 0}
+                    totalPages={pagination?.totalPages ?? 1}
+                    onPageChange={setPage}
+                  />
+                )}
+              </div>
             </div>
           )}
-            </>
+          </div>
+            </div>
           )}
         </div>
       </div>
 
       <LeadFormDialog open={formOpen} onOpenChange={setFormOpen} />
-    </div>
-  );
-}
-
-function GridSkeleton() {
-  return (
-    <div className="grid gap-3 sm:grid-cols-2 xl:grid-cols-3">
-      {[...Array(6)].map((_, i) => (
-        <Skeleton key={i} className="h-36 w-full rounded-xl" />
-      ))}
     </div>
   );
 }

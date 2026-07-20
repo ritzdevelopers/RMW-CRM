@@ -4,9 +4,8 @@ import * as React from 'react';
 import { Building2, Globe, Megaphone, Users, Upload, Footprints, PenLine, MoreHorizontal, RefreshCw } from 'lucide-react';
 import { Card } from '@/components/ui/card';
 import { Button } from '@/components/ui/button';
-import { Skeleton } from '@/components/ui/skeleton';
 import { PaginationBar } from '@/components/shared/pagination-bar';
-import { LeadMiniCard } from '@/components/leads/lead-mini-card';
+import { LeadsTable } from '@/components/leads/leads-table';
 import { LEAD_SOURCE_META } from '@/lib/constants';
 import { useLeads, useSyncMpfEnquiries } from '@/hooks/use-leads';
 import { isNewLead } from '@/lib/utils';
@@ -128,8 +127,8 @@ export function MpfLeadsPanel({ totalCount, canSync }: { totalCount: number; can
   };
 
   return (
-    <Card className="overflow-hidden border-orange-200/80 bg-gradient-to-br from-orange-50/50 to-background dark:from-orange-950/15">
-      <div className="flex items-center justify-between border-b border-orange-200/60 px-4 py-3 dark:border-orange-900/40">
+    <Card className="flex min-h-0 flex-1 flex-col overflow-hidden border-orange-200/80 bg-gradient-to-br from-orange-50/50 to-background dark:from-orange-950/15">
+      <div className="flex shrink-0 items-center justify-between border-b border-orange-200/60 px-4 py-3 dark:border-orange-900/40">
         <div>
           <div className="flex items-center gap-2">
             <p className="text-sm font-semibold">My Property Fact Leads</p>
@@ -155,14 +154,8 @@ export function MpfLeadsPanel({ totalCount, canSync }: { totalCount: number; can
         )}
       </div>
 
-      <div className="p-4">
-        {isLoading ? (
-          <div className="grid gap-2.5 sm:grid-cols-2 md:grid-cols-3 lg:grid-cols-4 xl:grid-cols-5">
-            {[...Array(10)].map((_, i) => (
-              <Skeleton key={i} className="h-28 rounded-xl" />
-            ))}
-          </div>
-        ) : leads.length === 0 ? (
+      <div className="flex min-h-0 flex-1 flex-col p-4">
+        {!isLoading && leads.length === 0 ? (
           <div className="rounded-xl border border-dashed bg-background/60 px-6 py-12 text-center">
             <Building2 className="mx-auto h-8 w-8 text-orange-400/60" />
             <p className="mt-2 text-sm font-medium">No MPF leads yet</p>
@@ -170,15 +163,11 @@ export function MpfLeadsPanel({ totalCount, canSync }: { totalCount: number; can
           </div>
         ) : (
           <>
-            <div className="grid gap-2.5 sm:grid-cols-2 md:grid-cols-3 lg:grid-cols-4 xl:grid-cols-5">
-              {leads.map((lead) => (
-                <LeadMiniCard key={lead.id} lead={lead} />
-              ))}
-            </div>
+            <LeadsTable leads={leads} loading={isLoading} showSource={false} fillHeight />
             {pagination.totalPages > 1 && (
-              <div className="mt-4 flex items-center justify-between border-t border-orange-200/40 pt-3 dark:border-orange-900/30">
+              <div className="mt-4 flex shrink-0 items-center justify-between border-t border-orange-200/40 pt-3 dark:border-orange-900/30">
                 <span className="text-xs text-muted-foreground">
-                  Showing page {page} of {pagination.totalPages}
+                  Total Records {pagination.total}
                 </span>
                 <PaginationBar {...pagination} onPageChange={setPage} />
               </div>
