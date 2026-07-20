@@ -4,8 +4,8 @@ import Link from 'next/link';
 import { useForm } from 'react-hook-form';
 import { zodResolver } from '@hookform/resolvers/zod';
 import { z } from 'zod';
-import { Loader2 } from 'lucide-react';
 import { Button } from '@/components/ui/button';
+import { AppleSpinner } from '@/components/ui/apple-spinner';
 import { Input } from '@/components/ui/input';
 import { Label } from '@/components/ui/label';
 import { PasswordInput } from '@/components/ui/password-input';
@@ -87,9 +87,9 @@ export default function LoginPage() {
           </Label>
         </div>
 
-        <Button type="submit" className="h-11 w-full text-base font-medium" disabled={login.isPending}>
-          {login.isPending && <Loader2 className="h-4 w-4 animate-spin" />}
-          Sign in
+        <Button type="submit" className="h-11 w-full gap-2 text-base font-medium" disabled={login.isPending}>
+          {login.isPending && <AppleSpinner size={18} />}
+          {login.isPending ? 'Signing in…' : 'Sign in'}
         </Button>
       </form>
 

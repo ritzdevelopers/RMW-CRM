@@ -122,4 +122,32 @@
     );
     animation: shimmer 1.6s infinite;
   }
+
+  /* Apple (macOS / iOS) style activity spinner */
+  .apple-spinner {
+    position: relative;
+    display: inline-block;
+    flex-shrink: 0;
+  }
+  .apple-spinner__bar {
+    position: absolute;
+    top: 0;
+    left: 50%;
+    width: 8%;
+    height: 26%;
+    margin-left: -4%;
+    border-radius: 999px;
+    background: currentColor;
+    transform-origin: center 192%;
+    opacity: 0.15;
+    animation: apple-spinner-fade 1.2s linear infinite;
+  }
+  @keyframes apple-spinner-fade {
+    0% {
+      opacity: 1;
+    }
+    100% {
+      opacity: 0.15;
+    }
+  }
 }

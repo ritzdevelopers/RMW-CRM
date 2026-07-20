@@ -39,6 +39,7 @@ import { LeadFormDialog } from '@/components/leads/lead-form-dialog';
 import { LeadsKanban } from '@/components/leads/leads-kanban';
 import { LeadsTable } from '@/components/leads/leads-table';
 import { PaginationBar } from '@/components/shared/pagination-bar';
+import { AppleSpinner } from '@/components/ui/apple-spinner';
 import { MpfLeadsPanel } from '@/components/leads/lead-source-boxes';
 import { useLeads, useBulkLeads, type LeadFilters } from '@/hooks/use-leads';
 import { useDashboardOverview } from '@/hooks/use-dashboard';
@@ -397,7 +398,15 @@ export default function LeadsPage() {
           )}
 
           {/* Content */}
-          <div className="flex min-h-0 flex-1 flex-col">
+          <div className="relative flex min-h-0 flex-1 flex-col">
+          {isFetching && !isLoading && view === 'grid' && leads.length > 0 && (
+            <div className="absolute inset-0 z-10 flex items-center justify-center bg-background/40 backdrop-blur-sm">
+              <div className="flex items-center gap-2 rounded-full border bg-background/90 px-4 py-2 shadow-md">
+                <AppleSpinner size={20} className="text-primary" />
+                <span className="text-sm font-medium text-muted-foreground">Loading…</span>
+              </div>
+            </div>
+          )}
           {view === 'kanban' ? (
             <LeadsKanban leads={leads} loading={isLoading} />
           ) : !isLoading && leads.length === 0 ? (
@@ -414,7 +423,7 @@ export default function LeadsPage() {
               }
             />
           ) : (
-            <div className={`flex min-h-0 flex-1 flex-col gap-3 ${isFetching ? 'opacity-70 transition-opacity' : 'transition-opacity'}`}>
+            <div className="flex min-h-0 flex-1 flex-col gap-3">
               <LeadsTable
                 leads={leads}
                 loading={isLoading}

@@ -5,6 +5,7 @@ import { Building2, Globe, Megaphone, Users, Upload, Footprints, PenLine, MoreHo
 import { Card } from '@/components/ui/card';
 import { Button } from '@/components/ui/button';
 import { PaginationBar } from '@/components/shared/pagination-bar';
+import { AppleSpinner } from '@/components/ui/apple-spinner';
 import { LeadsTable } from '@/components/leads/leads-table';
 import { LEAD_SOURCE_META } from '@/lib/constants';
 import { useLeads, useSyncMpfEnquiries } from '@/hooks/use-leads';
@@ -108,7 +109,7 @@ export function MpfLeadsPanel({ totalCount, canSync }: { totalCount: number; can
   const pageSize = 15;
   const mpfSync = useSyncMpfEnquiries();
 
-  const { data, isLoading } = useLeads({
+  const { data, isLoading, isFetching } = useLeads({
     page,
     pageSize,
     source: MPF,
@@ -162,8 +163,18 @@ export function MpfLeadsPanel({ totalCount, canSync }: { totalCount: number; can
             <p className="mt-1 text-xs text-muted-foreground">Click Sync to import website enquiries</p>
           </div>
         ) : (
-          <>
-            <LeadsTable leads={leads} loading={isLoading} showSource={false} fillHeight />
+          <div className="relative flex min-h-0 flex-1 flex-col">
+            {isFetching && !isLoading && leads.length > 0 && (
+              <div className="absolute inset-0 z-10 flex items-center justify-center bg-background/40 backdrop-blur-sm">
+                <div className="flex items-center gap-2 rounded-full border bg-background/90 px-4 py-2 shadow-md">
+                  <AppleSpinner size={20} className="text-primary" />
+                  <span className="text-sm font-medium text-muted-foreground">Loading…</span>
+                </div>
+              </div>
+            )}
+            <div className="flex min-h-0 flex-1 flex-col">
+              <LeadsTable leads={leads} loading={isLoading} showSource={false} fillHeight />
+            </div>
             {pagination.totalPages > 1 && (
               <div className="mt-4 flex shrink-0 items-center justify-between border-t border-orange-200/40 pt-3 dark:border-orange-900/30">
                 <span className="text-xs text-muted-foreground">
@@ -172,7 +183,7 @@ export function MpfLeadsPanel({ totalCount, canSync }: { totalCount: number; can
                 <PaginationBar {...pagination} onPageChange={setPage} />
               </div>
             )}
-          </>
+          </div>
         )}
       </div>
     </Card>
